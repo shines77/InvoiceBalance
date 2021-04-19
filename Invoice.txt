@@ -1,0 +1,33 @@
+[Setting]
+# 发票总金额，单位: 元
+TotalPrice=120000.00
+# 单价允许浮动范围，单位: 元
+Fluctuation=2.00
+
+[Goods]
+# 物品的价格, 没用到的可以留空
+Price1=212.00
+Price2=172.50
+Price3=226.00
+Price4=128.90
+Price5=
+Price6=
+Price7=
+Price8=
+Price9=
+Price10=
+
+[Ranges]
+# 物品的个数范围:
+# 用法: "100-200" 表示100个到200个
+# 用法: "100-" 表示100个到无穷大
+Range1=100-
+Range2=100-200
+Range3=100-200
+Range4=100-
+Range5=
+Range6=
+Range7=
+Range8=
+Range9=
+Range10=
