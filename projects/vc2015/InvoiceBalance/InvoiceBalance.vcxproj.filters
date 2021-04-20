@@ -15,5 +15,8 @@
     <ClInclude Include="..\..\..\src\InvoiceBalance\IniFile.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\InvoiceBalance\CountOf.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

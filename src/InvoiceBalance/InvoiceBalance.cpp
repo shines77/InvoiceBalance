@@ -9,32 +9,8 @@
 
 #include <limits>
 
+#include "CountOf.h"
 #include "IniFile.h"
-
-#if !defined(_MSC_VER)
-
-#if defined(_M_X64) || defined(_M_AMD64) || defined(_M_IA64)
-  #define _UNALIGNED __unaligned
-#else
-  #define _UNALIGNED
-#endif // _M_X64, _M_ARM
-
-/* _countof helper */
-#if !defined(_countof)
-  #if !defined(__cplusplus)
-    #define _countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
-  #else // !defined (__cplusplus)
-    extern "C++"
-    {
-        template <typename _CountofType, size_t _SizeOfArray>
-        char (* __countof_helper(_UNALIGNED _CountofType(&_Array)[_SizeOfArray]))[_SizeOfArray];
-
-        #define _countof(_Array) (sizeof(*__countof_helper(_Array)) + 0)
-    }
-  #endif // !defined(__cplusplus)
-#endif // !defined(_countof)
-
-#endif // !_MSC_VER
 
 static const double kDefaultTotalPrice = 120000.0;
 static const double kDefaultFluctuation = 2.0;
@@ -590,6 +566,10 @@ private:
                 break;
         }
 
+        if (goods_order != nullptr) {
+            delete [] goods_order;
+        }
+
         printf(" search_cnt = %u\n\n", (uint32_t)search_cnt);
         return solvable;
     }
@@ -706,7 +686,7 @@ size_t read_config_value(IniFile & config)
     return price_count;
 }
 
-void app_finalize()
+void app_shutdown()
 {
     if (s_goods_prices != nullptr) {
         delete [] s_goods_prices;
@@ -742,7 +722,7 @@ int main(int argc, char * argv[])
     }
 
     int result = invoiceBalance.solve();
-    app_finalize();
+    app_shutdown();
 #if defined(_MSC_VER)
     ::system("pause");
 #endif
