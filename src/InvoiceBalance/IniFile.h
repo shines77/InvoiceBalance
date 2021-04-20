@@ -44,8 +44,7 @@ public:
         this->lines_.clear();
     }
 
-private:
-    size_type skip_whitespace_chars(const std::string & str, size_type start = 0) {
+    static size_type skip_whitespace_chars(const std::string & str, size_type start = 0) {
         size_type max_len = str.size();
         size_type pos = start;
         while (pos < max_len) {
@@ -58,7 +57,7 @@ private:
         return ((pos < max_len) ? pos : std::string::npos);
     }
 
-    size_type find_char(const std::string & str, size_type start = 0, char delim = ' ') {
+    static size_type find_char(const std::string & str, size_type start = 0, char delim = ' ') {
         size_type max_len = str.size();
         size_type pos = start;
         while (pos < max_len) {
@@ -71,8 +70,8 @@ private:
         return ((pos < max_len) ? pos : std::string::npos);
     }
 
-    size_type copy_string(const std::string & src, std::string & dest,
-                          size_type first = 0, size_type last = size_type(-1)) {
+    static size_type copy_string(const std::string & src, std::string & dest,
+                                 size_type first = 0, size_type last = size_type(-1)) {
         size_type max_len = src.size();
         if (last == size_type(-1) || last > max_len) {
             last = max_len;
@@ -91,7 +90,6 @@ private:
         return dest.size();
     }
 
-public:
     int open(const char * filename) {
         int result = -1;
         if (filename != nullptr) {
