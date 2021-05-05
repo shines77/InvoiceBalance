@@ -100,7 +100,7 @@ public:
     }
 
     int open() {
-        int result = 0;
+        int err_code = 0;
         if (this->filename_.empty() || this->filename_ == "") {
             return -1;
         }
@@ -113,7 +113,7 @@ public:
         std::ifstream ifs;
         try {
             ifs.open(filename);
-            if (ifs.good()) {
+            if (!ifs.fail()) {
                 while (!ifs.eof()) {
                     static const size_t kLineBufSize = 256;
                     char line[kLineBufSize];
@@ -125,13 +125,22 @@ public:
                     }
                 }                
             }
+            else {
+                std::ios::iostate rdstate = ifs.rdstate();
+                if ((rdstate & std::ifstream::failbit) != 0) {
+                    err_code = -2;
+                }
+                else if ((rdstate & std::ifstream::badbit) != 0) {
+                    err_code = -3;
+                }
+            }
             ifs.close();
         }
         catch (std::exception & ex) {
             std::cout << "Exception: " << ex.what() << std::endl << std::endl;
-            result = -2;
+            err_code = -4;
         }
-        return result;
+        return err_code;
     }
 
     int parse() {
