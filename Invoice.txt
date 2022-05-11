@@ -1,6 +1,6 @@
 [Setting]
 # 发票总金额，单位: 元
-TotalPrice=120000.00
+TotalAmount=120000.00
 # 单价允许浮动范围，单位: 元
 Fluctuation=2.00
 

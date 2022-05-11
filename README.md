@@ -19,14 +19,14 @@ A small routine about the prices and amounts of invoice goods balance.
 | 商品 3 |  226.00 元  | 未知 |
 | 总计   | xxxxxx.xx 元 |    |
 
-要求你调整每种商品的数量以及单价，让总价等于一个指定的值 `TotalPrice`，
+要求你调整每种商品的数量以及单价，让总价等于一个指定的值 `TotalAmount`，
 例如：120000.00 元。
 
 每种商品的单价最大可调整的范围为 +/- `Fluctuation`，例如：+/- 2.00 元。
 
 每种商品的最小数量为 1 （不能等于 0 ），最大数量不限。
 
-现在要求你写一个程序，求出每种商品的单价和数量，使其总价刚好等于指定的 `TotalPrice` 。
+现在要求你写一个程序，求出每种商品的单价和数量，使其总价刚好等于指定的 `TotalAmount` 。
 
 ### 输入
 
@@ -35,7 +35,7 @@ A small routine about the prices and amounts of invoice goods balance.
 ```ini
 [Setting]
 # 发票总金额，单位: 元
-TotalPrice = 120000.00
+TotalAmount = 120000.00
 # 单价允许浮动范围，单位: 元
 Fluctuation = 2.00
 

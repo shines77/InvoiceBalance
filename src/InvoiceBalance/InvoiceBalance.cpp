@@ -12,20 +12,21 @@
 #include <assert.h>
 
 #include <limits>
+#include <cmath>
 #include <algorithm>
 
 #include "CountOf.h"
 #include "IniFile.h"
 
-struct AmountRange {
+struct CountRange {
     int min;
     int max;
 
-    AmountRange() : min(0), max(0) {}
-    AmountRange(int min, int max) : min(min), max(max) {}
-    AmountRange(const AmountRange & src) : min(src.min), max(src.max) {}
+    CountRange() : min(0), max(0) {}
+    CountRange(int min, int max) : min(min), max(max) {}
+    CountRange(const CountRange & src) : min(src.min), max(src.max) {}
 
-    AmountRange & operator = (const AmountRange & rhs) {
+    CountRange & operator = (const CountRange & rhs) {
         if (&rhs != this) {
             this->min = rhs.min;
             this->max = rhs.max;
@@ -45,7 +46,7 @@ static double default_goods_prices[] = {
     226.0
 };
 
-static AmountRange default_goods_amount_range[] = {
+static CountRange default_goods_count_range[] = {
     { 100, 0 },
     { 100, 0 },
     { 100, 0 }
@@ -196,7 +197,7 @@ double normal_dist_random_f(double minimun, double maximum)
         return minimun;
 }
 
-double round_price(double price, double precision = 100.0, int round_type = RoundingType::HalfAdjust)
+double round_currency(double price, double precision = 100.0, int round_type = RoundingType::HalfAdjust)
 {
     if (round_type == RoundingType::RoundDown)
         return floor(price * precision) / precision;
@@ -211,23 +212,23 @@ struct GoodsInvoice
     bool            auto_release;
     size_t          count;
     double *        prices;
-    size_t *        amounts;
-    AmountRange *   amount_ranges;
+    size_t *        counts;
+    CountRange *    count_ranges;
 
     GoodsInvoice() : auto_release(false), count(0),
-                     prices(nullptr), amounts(nullptr), amount_ranges(nullptr) {
+                     prices(nullptr), counts(nullptr), count_ranges(nullptr) {
     }
 
     GoodsInvoice(size_t goods_count, double goods_prices[],
-                 AmountRange goods_amount_ranges[] = nullptr,
-                 size_t goods_amounts[] = nullptr)
+                 CountRange goods_count_ranges[] = nullptr,
+                 size_t goods_counts[] = nullptr)
         : auto_release(false), count(goods_count),
-          prices(goods_prices), amounts(goods_amounts), amount_ranges(goods_amount_ranges) {
+          prices(goods_prices), counts(goods_counts), count_ranges(goods_count_ranges) {
     }
 
     GoodsInvoice(const GoodsInvoice & other)
         : auto_release(false), count(0),
-          prices(nullptr), amounts(nullptr), amount_ranges(nullptr) {
+          prices(nullptr), counts(nullptr), count_ranges(nullptr) {
         this->construct_copy(other);
     }
 
@@ -241,7 +242,7 @@ struct GoodsInvoice
 
     double moneys(size_t index) const {
         assert(index < this->count);
-        return round_price(this->prices[index] * this->amounts[index]);
+        return round_currency(this->prices[index] * this->counts[index]);
     }
 
     void destroy() {
@@ -250,13 +251,13 @@ struct GoodsInvoice
                 delete[] this->prices;
                 this->prices = nullptr;
             }
-            if (this->amounts) {
-                delete[] this->amounts;
-                this->amounts = nullptr;
+            if (this->counts) {
+                delete[] this->counts;
+                this->counts = nullptr;
             }
-            if (this->amount_ranges) {
-                delete[] this->amount_ranges;
-                this->amount_ranges = nullptr;
+            if (this->count_ranges) {
+                delete[] this->count_ranges;
+                this->count_ranges = nullptr;
             }
         }
     }
@@ -273,8 +274,8 @@ struct GoodsInvoice
             this->auto_release  = false;
             this->count         = other.size();
             this->prices        = other.prices;
-            this->amounts       = other.amounts;
-            this->amount_ranges = other.amount_ranges;
+            this->counts       = other.counts;
+            this->count_ranges = other.count_ranges;
         }
     }
 
@@ -302,42 +303,42 @@ struct GoodsInvoice
         }
         this->prices = new_goods_prices;
 
-        // amount
-        size_t * new_goods_amounts = new size_t[goods_count];
-        if (new_goods_amounts == nullptr) {
+        // count
+        size_t * new_goods_counts = new size_t[goods_count];
+        if (new_goods_counts == nullptr) {
             return false;
         }
 
-        if (other.amounts == nullptr) {
+        if (other.counts == nullptr) {
             for (size_t i = 0; i < goods_count; i++) {
-                new_goods_amounts[i] = 0;
+                new_goods_counts[i] = 0;
             }
         }
         else {
             for (size_t i = 0; i < goods_count; i++) {
-                new_goods_amounts[i] = other.amounts[i];
+                new_goods_counts[i] = other.counts[i];
             }
         }
-        this->amounts = new_goods_amounts;
+        this->counts = new_goods_counts;
 
-        // amount range
-        AmountRange * new_goods_amount_ranges = new AmountRange[goods_count];
-        if (new_goods_amount_ranges == nullptr) {
+        // count range
+        CountRange * new_goods_count_ranges = new CountRange[goods_count];
+        if (new_goods_count_ranges == nullptr) {
             return false;
         }
 
-        if (other.amount_ranges == nullptr) {
+        if (other.count_ranges == nullptr) {
             for (size_t i = 0; i < goods_count; i++) {
-                new_goods_amount_ranges[i].min = 1;
-                new_goods_amount_ranges[i].max = 0;
+                new_goods_count_ranges[i].min = 1;
+                new_goods_count_ranges[i].max = 0;
             }
         }
         else {
             for (size_t i = 0; i < goods_count; i++) {
-                new_goods_amount_ranges[i] = other.amount_ranges[i];
+                new_goods_count_ranges[i] = other.count_ranges[i];
             }
         }
-        this->amount_ranges = new_goods_amount_ranges;
+        this->count_ranges = new_goods_count_ranges;
 
         return true;
     }
@@ -362,28 +363,28 @@ struct GoodsInvoice
             }
         }
 
-        // amount
-        if (other.amounts == nullptr) {
+        // count
+        if (other.counts == nullptr) {
             for (size_t i = 0; i < goods_count; i++) {
-                this->amounts[i] = 0;
+                this->counts[i] = 0;
             }
         }
         else {
             for (size_t i = 0; i < goods_count; i++) {
-                this->amounts[i] = other.amounts[i];
+                this->counts[i] = other.counts[i];
             }
         }
 
-        // amount range
-        if (other.amount_ranges == nullptr) {
+        // count range
+        if (other.count_ranges == nullptr) {
             for (size_t i = 0; i < goods_count; i++) {
-                this->amount_ranges[i].min = 1;
-                this->amount_ranges[i].max = 0;
+                this->count_ranges[i].min = 1;
+                this->count_ranges[i].max = 0;
             }
         }
         else {
             for (size_t i = 0; i < goods_count; i++) {
-                this->amount_ranges[i] = other.amount_ranges[i];
+                this->count_ranges[i] = other.count_ranges[i];
             }
         }
 
@@ -433,23 +434,23 @@ struct GoodsInvoice
                 this->auto_release  = other.auto_release;
                 this->count         = other.size();
                 this->prices        = other.prices;
-                this->amount_ranges = other.amount_ranges;
-                this->amounts       = other.amounts;
+                this->count_ranges  = other.count_ranges;
+                this->counts       = other.counts;
                 return true;
             }
         }
     }
 
-    void set_price_amount(size_t goods_count, double goods_prices[],
-                          AmountRange goods_amount_ranges[] = nullptr,
-                          size_t goods_amounts[] = nullptr) {
+    void set_price_and_count(size_t goods_count, double goods_prices[],
+                             CountRange goods_count_ranges[] = nullptr,
+                             size_t goods_counts[] = nullptr) {
         this->destroy();
 
         this->auto_release  = false;
         this->count         = goods_count;
         this->prices        = goods_prices;
-        this->amount_ranges = goods_amount_ranges;
-        this->amounts       = goods_amounts;
+        this->count_ranges  = goods_count_ranges;
+        this->counts       = goods_counts;
     }
 
     bool create_price_amount(const GoodsInvoice & goods_list) {
@@ -459,15 +460,15 @@ struct GoodsInvoice
 };
 
 struct Goods {
-    double          price;
-    size_t          amount;
-    AmountRange     amount_range;
+    double      price;
+    size_t      count;
+    CountRange  count_range;
 
-    Goods() : price(0.0), amount(0) {
+    Goods() : price(0.0), count(0) {
     }
 
     double total_money() const {
-        return round_price(this->price * this->amount);
+        return round_currency(this->price * this->count);
     }
 };
 
@@ -477,7 +478,7 @@ public:
     typedef std::vector<Goods>  GoodsList;
 
 private:    
-    double  total_price_;
+    double  total_amount_;
     double  fluctuation_;
     double  min_price_error_;
 
@@ -489,33 +490,33 @@ private:
 
 public:
     InvoiceBalance()
-        : total_price_(0.0), fluctuation_(0.0),
+        : total_amount_(0.0), fluctuation_(0.0),
           min_price_error_(std::numeric_limits<double>::max()), goods_count_(0) {
     }
 
-    InvoiceBalance(double total_price, double fluctuation)
-        : total_price_(total_price), fluctuation_(fluctuation),
+    InvoiceBalance(double total_amount, double fluctuation)
+        : total_amount_(total_amount), fluctuation_(fluctuation),
           min_price_error_(std::numeric_limits<double>::max()), goods_count_(0) {
     }
 
     virtual ~InvoiceBalance() {
     }
 
-    void set_total_price(double total_price, double fluctuation) {
-        this->total_price_ = total_price;
+    void set_total_amount(double total_amount, double fluctuation) {
+        this->total_amount_ = total_amount;
         this->fluctuation_ = fluctuation;
     }
 
-    void set_price_amount(const GoodsList & goods_list) {
+    void set_price_and_count(const GoodsList & goods_list) {
         this->input_goods_ = goods_list;
         this->goods_list_.resize(goods_list.size());
     }
 
     bool normalize_prices() {
         bool result = true;
-        this->fluctuation_ = round_price(this->fluctuation_);
+        this->fluctuation_ = round_currency(this->fluctuation_);
         for (size_t i = 0; i < this->input_goods_.size(); i++) {
-            this->input_goods_[i].price = round_price(this->input_goods_[i].price);
+            this->input_goods_[i].price = round_currency(this->input_goods_[i].price);
             if (this->input_goods_[i].price < 0.0) {
                 this->input_goods_[i].price = 0.0;
                 result = false;
@@ -525,30 +526,30 @@ public:
     }
 
 private:
-    double calc_total_price(const GoodsList & goods_list) {
-        double actual_total_price = 0.0;
+    double calc_total_amount(const GoodsList & goods_list) {
+        double actual_total_amount = 0.0;
         for (size_t i = 0; i < goods_list.size(); i++) {
-            double total = round_price(goods_list[i].price * goods_list[i].amount);
-            actual_total_price += total;
+            double total = round_currency(goods_list[i].price * goods_list[i].count);
+            actual_total_amount += total;
         }
-        return actual_total_price;
+        return actual_total_amount;
     }
 
-    double calc_min_total_price(size_t idx, double total_price, const GoodsList & goods_list) {
-        double actual_total_price = 0.0;
+    double calc_min_total_amount(size_t idx, double total_amount, const GoodsList & goods_list) {
+        double actual_total_amount = 0.0;
         for (size_t i = 0; i < goods_list.size(); i++) {
             if (i == idx) continue;
-            int min_amount = (std::max)(goods_list[i].amount_range.min, 1);
-            double money = round_price(goods_list[i].price * min_amount);
-            actual_total_price += money;
+            int min_amount = (std::max)(goods_list[i].count_range.min, 1);
+            double money = round_currency(goods_list[i].price * min_amount);
+            actual_total_amount += money;
         }
-        return actual_total_price;
+        return actual_total_amount;
     }
 
-    int recalc_max_goods_amount(const GoodsList & goods_list, size_t idx) {
-        double actual_total_price = calc_total_price(goods_list);
-        double min_total_price = calc_min_total_price(idx, this->total_price_, goods_list);
-        return (int)((this->total_price_ - actual_total_price - min_total_price) /
+    int recalc_max_goods_count(const GoodsList & goods_list, size_t idx) {
+        double actual_total_amount = calc_total_amount(goods_list);
+        double min_total_amount = calc_min_total_amount(idx, this->total_amount_, goods_list);
+        return (int)((this->total_amount_ - actual_total_amount - min_total_amount) /
                      (this->input_goods_[idx].price - this->fluctuation_));
     }
 
@@ -566,7 +567,7 @@ private:
         size_t count = 0;
         size_t padding_idx = size_t(-1);
         for (size_t i = 0; i < goods_list.size(); i++) {
-            if (goods_list[i].amount == 0.0) {
+            if (goods_list[i].count == 0.0) {
                 if (count == 0)
                     padding_idx = i;
                 count++;
@@ -585,19 +586,19 @@ private:
         return is_better;
     }
 
-    int adjust_price_and_amount(double total_price, double fluctuation,
-                                GoodsList & goods_list) {
+    int adjust_price_and_count(double total_amount, double fluctuation,
+                               GoodsList & goods_list) {
         int result = 0;
         size_t padding_idx = find_unique_padding_idx(goods_list);
         if (padding_idx == size_t(-1)) {
             return -1;
         }
-        ptrdiff_t padding_amount = -1;
-        double actual_total_price = calc_total_price(goods_list);
-        if (actual_total_price <= total_price) {
-            padding_amount = (ptrdiff_t)((total_price - actual_total_price) / goods_list[padding_idx].price);
-            goods_list[padding_idx].amount = padding_amount;
-            if (padding_amount <= 0 || padding_amount < (ptrdiff_t)goods_list[padding_idx].amount_range.min) {
+        ptrdiff_t padding_count = -1;
+        double actual_total_amount = calc_total_amount(goods_list);
+        if (actual_total_amount <= total_amount) {
+            padding_count = (ptrdiff_t)((total_amount - actual_total_amount) / goods_list[padding_idx].price);
+            goods_list[padding_idx].count = padding_count;
+            if (padding_count <= 0 || padding_count < (ptrdiff_t)goods_list[padding_idx].count_range.min) {
                 return -1;
             }
         }
@@ -605,15 +606,15 @@ private:
             return -1;
         }
 
-        actual_total_price = calc_total_price(goods_list);
-        double actual_price_diff = actual_total_price - total_price;
+        actual_total_amount = calc_total_amount(goods_list);
+        double actual_price_diff = actual_total_amount - total_amount;
         record_min_price_error(actual_price_diff, goods_list);
 
         for (size_t i = 0; i < goods_list.size(); i++) {
-            double price_adjust = round_price(actual_price_diff / goods_list[i].price);
+            double price_adjust = round_currency(actual_price_diff / goods_list[i].price);
             double old_price = goods_list[i].price;
             goods_list[i].price -= price_adjust;
-            double price_diff = actual_total_price - price_adjust * goods_list[i].amount - total_price;
+            double price_diff = actual_total_amount - price_adjust * goods_list[i].count - total_amount;
             record_min_price_error(price_diff, goods_list);
             goods_list[i].price = old_price;
         }
@@ -624,7 +625,7 @@ private:
     bool search_price_and_amount() {
         bool solvable = false;
 
-        double total_price = this->total_price_;
+        double total_amount = this->total_amount_;
         double fluctuation = this->fluctuation_;
         size_t goods_count = this->goods_list_.size();
 
@@ -638,11 +639,11 @@ private:
             bool retry_next = false;
             for (size_t i = 0; i < goods_count; i++) {
                 double price_change = normal_dist_random_f(-this->fluctuation_, this->fluctuation_);
-                this->goods_list_[i].price = round_price(this->input_goods_[i].price + price_change);
+                this->goods_list_[i].price = round_currency(this->input_goods_[i].price + price_change);
             }
 
             for (size_t i = 0; i < goods_count; i++) {
-                this->goods_list_[i].amount = 0;
+                this->goods_list_[i].count = 0;
                 goods_orders[i] = i;
             }
 
@@ -651,10 +652,10 @@ private:
             
             for (ptrdiff_t i = goods_count - 1; i >= 1; i--) {
                 size_t idx = goods_orders[i];
-                assert(this->goods_list_[idx].amount == 0.0);
-                int min_amount = this->goods_list_[idx].amount_range.min;
-                int max_amount = this->goods_list_[idx].amount_range.max;
-                int actual_max_goods_amount = recalc_max_goods_amount(this->goods_list_, idx);
+                assert(this->goods_list_[idx].count == 0.0);
+                int min_amount = this->goods_list_[idx].count_range.min;
+                int max_amount = this->goods_list_[idx].count_range.max;
+                int actual_max_goods_amount = recalc_max_goods_count(this->goods_list_, idx);
                 min_amount = (std::max)(min_amount, 1);
                 if (max_amount >= min_amount)
                     max_amount = (std::min)(max_amount, actual_max_goods_amount);
@@ -666,11 +667,11 @@ private:
                 }
                 int rand_amount = normal_dist_random_i32(min_amount, max_amount);
                 assert(rand_amount >= min_amount);
-                this->goods_list_[idx].amount = rand_amount;                
+                this->goods_list_[idx].count = rand_amount;                
             }
 
             if (!retry_next) {
-                int result = adjust_price_and_amount(total_price, fluctuation, this->goods_list_);
+                int result = adjust_price_and_count(total_amount, fluctuation, this->goods_list_);
                 if (result == 0) {
                     // Adjust success, have no overflow
                 }
@@ -693,7 +694,7 @@ private:
     bool fast_search_price_and_amount() {
         bool solvable = false;
 
-        double total_price = this->total_price_;
+        double total_amount = this->total_amount_;
         double fluctuation = this->fluctuation_;
         size_t goods_count = this->goods_list_.size();
         size_t n = this->goods_list_.size();
@@ -707,18 +708,18 @@ private:
         for (size_t i = 0; i < n; i++) {
             sum += this->goods_list_[i].price;
             result.push_back(this->goods_list_[i].price);
-            this->goods_list_[i].amount = 1;
+            this->goods_list_[i].count = 1;
         }
 
         double remain = 0;
         for (intptr_t i = n - 1; i >= 0; i--) {
-            remain += this->goods_list_[i].price * this->goods_list_[i].amount;
+            remain += this->goods_list_[i].price * this->goods_list_[i].count;
             remains.push_back(remain);
         }
 
         size_t search_cnt = 0;
         do {
-            double balance = total_price;
+            double balance = total_amount;
             for (size_t i = 0; i < n; i++) {
                 intptr_t max_count = (intptr_t)((balance - remains[i]) / this->goods_list_[i].price);
                 if (max_count <= 0) {
@@ -726,7 +727,7 @@ private:
                     continue;
                 }
                 size_t count = normal_dist_random_64(1, (size_t)max_count);
-                this->goods_list_[i].amount = count;
+                this->goods_list_[i].count = count;
                 balance -= this->goods_list_[i].price * count;
             }
 
@@ -735,29 +736,29 @@ private:
                 diff = -diff;
                 // Add
                 for (size_t i = 0; i < n; i++) {
-                    double change = (std::min)(fluctuation, diff / this->goods_list_[i].amount);
+                    double change = (std::min)(fluctuation, diff / this->goods_list_[i].count);
                     double new_price = result[i];
                     new_price += change;
-                    new_price = round_price(new_price);
+                    new_price = round_currency(new_price);
                     change = new_price - result[i];
                     result[i] = new_price;
-                    diff -= change * this->goods_list_[i].amount;
+                    diff -= change * this->goods_list_[i].count;
                 }
             } else {
                 // Sub
                 for (size_t i = 0; i < n; i++) {
-                    double change = (std::min)(fluctuation, diff / this->goods_list_[i].amount);
+                    double change = (std::min)(fluctuation, diff / this->goods_list_[i].count);
                     double new_price = result[i];
                     new_price -= change;
-                    new_price = round_price(new_price);
+                    new_price = round_currency(new_price);
                     change = new_price - result[i];
                     result[i] = new_price;
-                    diff -= change * this->goods_list_[i].amount;
+                    diff -= change * this->goods_list_[i].count;
                 }
             }
 
-            double actual_total = calc_total_price(this->goods_list_);
-            double total_diff = actual_total - total_price;
+            double actual_total = calc_total_amount(this->goods_list_);
+            double total_diff = actual_total - total_amount;
             record_min_price_error(total_diff, this->goods_list_);
 
             if (abs(total_diff) <= 0.0000001) {
@@ -779,18 +780,18 @@ private:
         printf("\n");
         printf("   #        amount         price           money\n");
         printf("---------------------------------------------------------------\n\n");
-        double actual_total_price = calc_total_price(this->best_answer_);
+        double actual_total_amount = calc_total_amount(this->best_answer_);
         for (size_t i = 0; i < this->best_answer_.size(); i++) {
             printf("  %2u     %8u       %8.2f       %10.2f\n",
                    (uint32_t)(i + 1),
-                   (uint32_t)this->best_answer_[i].amount,
+                   (uint32_t)this->best_answer_[i].count,
                    this->best_answer_[i].price,
                    this->best_answer_[i].total_money());
         }
         printf("\n");
-        printf(" Total                                 %10.2f\n", actual_total_price);
+        printf(" Total                                 %10.2f\n", actual_total_amount);
         printf("---------------------------------------------------------------\n");
-        printf(" Error                                 %10.2f\n", (actual_total_price - this->total_price_));
+        printf(" Error                                 %10.2f\n", (actual_total_amount - this->total_amount_));
         printf("\n\n");
         printf("---------------------------------------------------------------\n");
         printf(" The best price error:  %0.16f\n", this->min_price_error_);
@@ -837,7 +838,7 @@ double strToDouble(const std::string & value, double default_value)
         return std::stof(value.c_str());
 }
 
-bool parse_amount_range(const std::string & value, int & min_val, int & max_val)
+bool parse_count_range(const std::string & value, int & min_val, int & max_val)
 {
     bool is_ok = false;
     size_t pos, start;
@@ -884,7 +885,7 @@ bool parse_amount_range(const std::string & value, int & min_val, int & max_val)
 }
 
 struct AppConfig {
-    double total_price;
+    double total_amount;
     double fluctuation;
 
     std::vector<Goods> goods;
@@ -895,12 +896,12 @@ size_t read_config_value(IniFile & iniFile, AppConfig & config)
     std::string value;
 
     // TotalPrice
-    if (iniFile.contains("TotalPrice")) {
-        value = iniFile.values("TotalPrice");
-        config.total_price = strToDouble(value, kDefaultTotalPrice);
+    if (iniFile.contains("TotalAmount")) {
+        value = iniFile.values("TotalAmount");
+        config.total_amount = strToDouble(value, kDefaultTotalPrice);
     }
     else {
-        config.total_price = kDefaultTotalPrice;
+        config.total_amount = kDefaultTotalPrice;
     }
 
     // Fluctuation
@@ -928,18 +929,18 @@ size_t read_config_value(IniFile & iniFile, AppConfig & config)
             double goods_price = strToDouble(value, 0.0);
             if (goods_price != 0.0 && goods_price != NAN) {
                 Goods goods;
-                goods.price = round_price(goods_price);
+                goods.price = round_currency(goods_price);
                 // Range ##
                 int range_min = 1, range_max = 0;
                 if (iniFile.contains(range_name)) {
                     value = iniFile.values(range_name);
-                    bool is_ok = parse_amount_range(value, range_min, range_max);
+                    bool is_ok = parse_count_range(value, range_min, range_max);
                     if (is_ok) {
                         // Read OK
                     }
                 } 
-                goods.amount_range.min = range_min;
-                goods.amount_range.max = range_max;
+                goods.count_range.min = range_min;
+                goods.count_range.max = range_max;
                 config.goods.push_back(goods);
                 goods_count++;
             }
@@ -969,22 +970,22 @@ int main(int argc, char * argv[])
 
     InvoiceBalance goods_listBalance;
     if (nGoodsCount != size_t(-1)) {
-        goods_listBalance.set_total_price(config.total_price, config.fluctuation);
-        goods_listBalance.set_price_amount(config.goods);
+        goods_listBalance.set_total_amount(config.total_amount, config.fluctuation);
+        goods_listBalance.set_price_and_count(config.goods);
     }
     else {
-        // Get the default prices and amount ranges
+        // Get the default prices and count ranges
         std::vector<Goods> goods_list;
-        size_t min_goods_count = (std::min)(_countof(default_goods_prices), _countof(default_goods_amount_range));
+        size_t min_goods_count = (std::min)(_countof(default_goods_prices), _countof(default_goods_count_range));
         for (size_t i = 0; i < min_goods_count; i++) {
             Goods goods;
             goods.price = default_goods_prices[i];
-            goods.amount = 0;
-            goods.amount_range = default_goods_amount_range[i];
+            goods.count = 0;
+            goods.count_range = default_goods_count_range[i];
             goods_list.push_back(goods);
         }
-        goods_listBalance.set_total_price(kDefaultTotalPrice, kDefaultFluctuation);
-        goods_listBalance.set_price_amount(goods_list);
+        goods_listBalance.set_total_amount(kDefaultTotalPrice, kDefaultFluctuation);
+        goods_listBalance.set_price_and_count(goods_list);
     }
 
 #if 1
