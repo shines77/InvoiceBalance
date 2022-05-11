@@ -517,6 +517,7 @@ public:
         for (size_t i = 0; i < this->input_goods_.size(); i++) {
             this->input_goods_[i].price = round_price(this->input_goods_[i].price);
             if (this->input_goods_[i].price < 0.0) {
+                this->input_goods_[i].price = 0.0;
                 result = false;
             }
         }
