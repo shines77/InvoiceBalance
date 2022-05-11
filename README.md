@@ -8,7 +8,7 @@ A small routine about the prices and amounts of invoice goods balance.
 
 ### 趣味编程题 -- 发票凑单
 
-这是我的一个会计朋友实际工作中遇到的问题，大概很多会计都会遇到这样的问题。
+这是我的一个会计朋友实际工作中遇到的问题，估计很多会计都会遇到这样的问题。
 
 有任意 `N` 种商品，每种商品单价不同，数量未知，如下所示：
 
